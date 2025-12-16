@@ -112,19 +112,21 @@ def import_character_from_pdf(pdf_bytes: bytes, char_id: str) -> Character:
 
     weapons: List[Weapon] = []
     for i in (1, 2, 3):
-        wname = (values.get(f"Arma {i}") or "").strip()
+        wname = (values.get("Arma %d" % i) or "").strip()
         if not wname:
             continue
 
-        atk = _to_int(values.get(f"Bônus de Ataque {i}"), 0)
-        dmg_raw = (values.get(f"Dano / Tipo {i}") or "").strip()
+        atk = _to_int(values.get("Bônus de Ataque %d" % i), 0)
+        dmg_raw = (values.get("Dano / Tipo %d" % i) or "").strip()
 
-        # tenta separar expressão do tipo
+        # separa expressão e tipo
         dmg_expr = dmg_raw.replace(" ", "")
         dmg_type = "—"
         m = re.match(r"^([0-9dD+\-\s]+)\s*(.*)$", dmg_raw)
         if m:
-            dmg_expr = (m.group(1) or "").replace(" ", "") or dmg_expr
+            expr_part = (m.group(1) or "").replace(" ", "")
+            if expr_part:
+                dmg_expr = expr_part
             rest = (m.group(2) or "").strip()
             if rest:
                 dmg_type = rest
