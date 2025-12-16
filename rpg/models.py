@@ -1,6 +1,12 @@
 from __future__ import annotations
 from typing import List
 from pydantic import BaseModel, Field
+from typing import Optional
+
+class Character(BaseModel):
+    ...
+    portrait_path: Optional[str] = None
+    equipment: List[str] = Field(default_factory=list)
 
 class Weapon(BaseModel):
     name: str = "Longsword"
