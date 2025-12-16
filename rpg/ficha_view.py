@@ -1,9 +1,19 @@
 import streamlit as st
-from rpg.storage import list_character_ids, load_character, save_character
+import uuid
+from pathlib import Path
+
+from rpg.storage import (
+    ensure_dirs,
+    list_character_ids,
+    load_character,
+    save_character,
+    PORTRAIT_DIR,
+)
+from rpg.pdf_import import import_character_from_pdf
 from rpg.utils import ability_mod, proficiency_bonus
 from rpg.dice import roll_d20, roll_expr, critify, fmt_d20, fmt_expr
-from rpg.models import Weapon
 
+# Mapas locais (se quiser, podemos mover para outro arquivo)
 SKILLS = {
     "Athletics": "STR",
     "Acrobatics": "DEX",
@@ -25,171 +35,195 @@ SKILLS = {
     "Persuasion": "CHA",
 }
 
-ABIL_FIELDS = {
-    "STR": "str_score",
-    "DEX": "dex_score",
-    "CON": "con_score",
-    "INT": "int_score",
-    "WIS": "wis_score",
-    "CHA": "cha_score",
-}
+ensure_dirs()
 
-def _log(line: str):
+def _log(line: str) -> None:
     st.session_state["log"].insert(0, line)
 
 def render():
-    st.subheader("🧾 Ficha (clicável) + Log")
-
+    # estado
     if "log" not in st.session_state:
         st.session_state["log"] = []
-
-    left, right = st.columns([0.60, 0.40], gap="large")
-
-    # ====== Sidebar (controles) ======
-    with st.sidebar:
-        st.subheader("Personagem")
+    if "selected_char_id" not in st.session_state:
         ids = list_character_ids()
-        if not ids:
-            st.warning("Sem fichas em data/characters/. Coloque um JSON lá.")
-            return
+        st.session_state["selected_char_id"] = ids[0] if ids else None
 
-        pick = st.selectbox("Selecione", ids)
-        ch = load_character(pick)
-        if not ch:
-            st.error("Não consegui carregar a ficha.")
-            return
+    st.subheader("🧾 Ficha + Rolagens (clicáveis)")
 
-        st.divider()
-        st.subheader("Regras de rolagem")
+    # controles de rolagem
+    with st.sidebar:
+        st.markdown("### 🎲 Regras rápidas")
         adv = st.checkbox("Vantagem", value=False)
         dis = st.checkbox("Desvantagem", value=False)
         target_ac = st.number_input("AC do alvo (0 = ignorar)", 0, 40, value=0, step=1)
         auto_damage = st.checkbox("Se acertar, rolar dano automático", value=True)
+    # --- 3 colunas: roster | ficha | log ---
+    roster, sheet, logcol = st.columns([0.22, 0.48, 0.30], gap="large")
 
-        st.divider()
-        with st.expander("Editar rápido"):
-            ch.character_name = st.text_input("Nome", value=ch.character_name)
-            ch.level = st.number_input("Nível", 1, 20, value=int(ch.level))
-            ch.ac = st.number_input("AC", 1, 40, value=int(ch.ac))
-            ch.max_hp = st.number_input("Max HP", 1, 999, value=int(ch.max_hp))
-            ch.current_hp = st.number_input("HP atual", 0, int(ch.max_hp), value=int(ch.current_hp))
-            ch.initiative_bonus = st.number_input("Bônus iniciativa", -20, 20, value=int(ch.initiative_bonus))
+    # ====== COLUNA 1: ROSTER + IMPORT PDF ======
+    with roster:
+        st.markdown("### 👥 Jogadores")
 
-            if not ch.weapons:
-                ch.weapons = [Weapon(name="Longsword", attack_bonus=5, damage="1d8+3", damage_type="slashing")]
-
-            w = ch.weapons[0]
-            st.markdown("**Arma 1**")
-            w.name = st.text_input("Nome arma", value=w.name)
-            w.attack_bonus = st.number_input("Ataque (bônus total)", -20, 20, value=int(w.attack_bonus))
-            w.damage = st.text_input("Dano", value=w.damage)
-            w.damage_type = st.text_input("Tipo", value=w.damage_type)
-
-            if st.button("💾 Salvar ficha"):
-                save_character(ch)
-                st.success("Salvo!")
-
-    # ====== cálculos ======
-    pb = proficiency_bonus(ch.level)
-    mods = {k: ability_mod(getattr(ch, ABIL_FIELDS[k])) for k in ABIL_FIELDS}
-
-    # ====== FICHA (esquerda) ======
-    with left:
-        st.markdown(f"## {ch.character_name}")
-        st.caption(f"{ch.species} • {ch.class_and_level} • Nível {ch.level} • PB +{pb}")
-
-        a, b, c, d = st.columns(4)
-        a.metric("AC", ch.ac)
-        b.metric("Speed", ch.speed)
-        c.metric("HP", f"{ch.current_hp}/{ch.max_hp}")
-        d.metric("Init", f"{ch.initiative_bonus:+d}")
-
-        st.divider()
-        st.markdown("### Atributos (clique para rolar)")
-        cols = st.columns(6)
-        for i, ab in enumerate(["STR","DEX","CON","INT","WIS","CHA"]):
-            with cols[i]:
-                score = getattr(ch, ABIL_FIELDS[ab])
-                mod = mods[ab]
-                st.markdown(f"**{ab}**  \n{score}")
-                if st.button(f"{mod:+d}", key=f"abil_{ab}"):
-                    rr = roll_d20(bonus=mod, advantage=adv, disadvantage=dis)
-                    _log(f"🧠 **{ch.character_name}** — {ab} Check: {fmt_d20(rr)}")
-                    st.rerun()
-
-                save_prof = ab in (ch.save_proficiencies or [])
-                save_bonus = mod + (pb if save_prof else 0)
-                if st.button(f"Save {save_bonus:+d}", key=f"save_{ab}"):
-                    rr = roll_d20(bonus=save_bonus, advantage=adv, disadvantage=dis)
-                    tag = " (PROF)" if save_prof else ""
-                    _log(f"🛡️ **{ch.character_name}** — {ab} Save{tag}: {fmt_d20(rr)}")
+        with st.expander("📥 Importar ficha por PDF", expanded=False):
+            pdf = st.file_uploader("Envie o PDF da ficha", type=["pdf"])
+            if pdf:
+                new_id = uuid.uuid4().hex[:10]
+                ch_new = import_character_from_pdf(pdf.getvalue(), char_id=new_id)
+                st.success(f"Detectado: {ch_new.character_name} ({ch_new.class_and_level})")
+                if st.button("✅ Salvar como nova ficha", use_container_width=True):
+                    save_character(ch_new)
+                    st.session_state["selected_char_id"] = ch_new.id
                     st.rerun()
 
         st.divider()
-        st.markdown("### Perícias (clique para rolar)")
-        for skill, ab in SKILLS.items():
-            prof = skill in (ch.skill_proficiencies or [])
-            bonus = mods[ab] + (pb if prof else 0)
-            r = st.columns([0.55, 0.2, 0.25])
-            r[0].write(f"{skill} *( {ab} )*")
-            if r[1].button(f"{bonus:+d}", key=f"skill_{skill}"):
-                rr = roll_d20(bonus=bonus, advantage=adv, disadvantage=dis)
-                tag = " (PROF)" if prof else ""
-                _log(f"🎯 **{ch.character_name}** — {skill}{tag}: {fmt_d20(rr)}")
-                st.rerun()
-            r[2].write("✅" if prof else "")
 
-        st.divider()
-        st.markdown("### Ataques (com regras)")
-        for idx, w in enumerate(ch.weapons or []):
-            r = st.columns([0.48, 0.18, 0.34])
-            r[0].write(f"**{w.name}**  \n{w.damage} ({w.damage_type})")
+        ids = list_character_ids()
+        if not ids:
+            st.info("Sem fichas ainda. Importe um PDF acima.")
+        else:
+            for cid in ids:
+                ch = load_character(cid)
+                if not ch:
+                    continue
 
-            if r[1].button(f"{int(w.attack_bonus):+d}", key=f"atk_{idx}"):
-                rr = roll_d20(bonus=int(w.attack_bonus), advantage=adv, disadvantage=dis)
-                nat = rr["chosen"]
-                total = rr["total"]
-
-                # regras de acerto
-                if nat == 1:
-                    outcome = "❌ **MISS (nat 1)**"
-                    hit = False
-                    crit = False
-                elif nat == 20:
-                    outcome = "💥 **CRIT (nat 20)**"
-                    hit = True
-                    crit = True
-                else:
-                    if target_ac and total >= int(target_ac):
-                        outcome = f"✅ **HIT** vs AC {int(target_ac)}"
-                        hit = True
-                        crit = False
-                    elif target_ac:
-                        outcome = f"❌ **MISS** vs AC {int(target_ac)}"
-                        hit = False
-                        crit = False
+                with st.container(border=True):
+                    # foto
+                    if ch.portrait_path and Path(ch.portrait_path).exists():
+                        st.image(ch.portrait_path, use_container_width=True)
                     else:
-                        outcome = "🎲 **Rolado (sem AC)**"
-                        hit = True
-                        crit = False
+                        st.caption("📷 Sem foto")
 
-                _log(f"🗡️ **{ch.character_name}** — Attack ({w.name}): {fmt_d20(rr)} → {outcome}")
+                    st.markdown(f"**{ch.character_name}**")
+                    st.caption(ch.class_and_level)
 
-                if hit and auto_damage:
-                    dmg_expr = critify(w.damage) if crit else w.damage
-                    dr = roll_expr(dmg_expr)
-                    tag = " (CRIT dmg)" if crit else ""
-                    _log(f"💥 **{ch.character_name}** — Damage {w.name}{tag}: {fmt_expr(dr)}")
+                    if st.button("➡️ Abrir", key=f"open_{cid}", use_container_width=True):
+                        st.session_state["selected_char_id"] = cid
+                        st.rerun()
 
-                st.rerun()
+    # personagem selecionado
+    cid = st.session_state.get("selected_char_id")
+    ch = load_character(cid) if cid else None
 
-            if r[2].button("🎯 Dano", key=f"dmg_{idx}"):
-                dr = roll_expr(w.damage)
-                _log(f"💥 **{ch.character_name}** — Damage {w.name}: {fmt_expr(dr)}")
-                st.rerun()
+    # ====== COLUNA 2: FICHA (com expanders) ======
+    with sheet:
+        if not ch:
+            st.info("Selecione um jogador à esquerda.")
+        else:
+            pb = proficiency_bonus(ch.level)
+            mods = {
+                "STR": ability_mod(ch.str_score),
+                "DEX": ability_mod(ch.dex_score),
+                "CON": ability_mod(ch.con_score),
+                "INT": ability_mod(ch.int_score),
+                "WIS": ability_mod(ch.wis_score),
+                "CHA": ability_mod(ch.cha_score),
+            }
 
-    # ====== LOG (direita) ======
-    with right:
+            st.markdown(f"## 🧾 {ch.character_name}")
+            st.caption(f"{ch.species} • {ch.class_and_level} • Nível {ch.level} • PB +{pb}")
+
+            # Foto do personagem/jogador
+            with st.expander("➡️ 📷 Foto do jogador/personagem", expanded=False):
+                img = st.file_uploader("Enviar imagem (png/jpg)", type=["png", "jpg", "jpeg"], key=f"img_{ch.id}")
+                if img:
+                    out = PORTRAIT_DIR / f"{ch.id}.png"
+                    out.write_bytes(img.getvalue())
+                    ch.portrait_path = str(out)
+                    save_character(ch)
+                    st.success("Foto salva!")
+                    st.rerun()
+
+            # ATRIBUTOS
+            with st.expander("➡️ Atributos (clique para rolar)", expanded=True):
+                cols = st.columns(6)
+                for i, ab in enumerate(["STR", "DEX", "CON", "INT", "WIS", "CHA"]):
+                    with cols[i]:
+                        score = getattr(ch, f"{ab.lower()}_score")
+                        mod = mods[ab]
+                        st.markdown(f"**{ab}**  \n{score}")
+                        if st.button(f"{mod:+d}", key=f"abil_{ab}_{ch.id}"):
+                            rr = roll_d20(bonus=mod, advantage=adv, disadvantage=dis)
+                            _log(f"🧠 **{ch.character_name}** — {ab} Check: {fmt_d20(rr)}")
+                            st.rerun()
+
+            # PERÍCIAS
+            with st.expander("➡️ Perícias (clique para rolar)", expanded=False):
+                for skill, ab in SKILLS.items():
+                    prof = skill in (ch.skill_proficiencies or [])
+                    bonus = mods[ab] + (pb if prof else 0)
+                    r = st.columns([0.55, 0.2, 0.25])
+                    r[0].write(f"{skill} *( {ab} )*")
+                    if r[1].button(f"{bonus:+d}", key=f"skill_{skill}_{ch.id}"):
+                        rr = roll_d20(bonus=bonus, advantage=adv, disadvantage=dis)
+                        tag = " (PROF)" if prof else ""
+                        _log(f"🎯 **{ch.character_name}** — {skill}{tag}: {fmt_d20(rr)}")
+                        st.rerun()
+                    r[2].write("✅" if prof else "")
+
+            # ATAQUES
+            with st.expander("➡️ Ataques (com regras)", expanded=False):
+                if not ch.weapons:
+                    st.info("Sem armas cadastradas na ficha.")
+                else:
+                    for idx, w in enumerate(ch.weapons):
+                        r = st.columns([0.50, 0.18, 0.32])
+                        r[0].write(f"**{w.name}** — {w.damage} ({w.damage_type})")
+
+                        if r[1].button(f"{int(w.attack_bonus):+d}", key=f"atk_{idx}_{ch.id}"):
+                            rr = roll_d20(bonus=int(w.attack_bonus), advantage=adv, disadvantage=dis)
+                            nat = rr["chosen"]
+                            total = rr["total"]
+
+                            # regras de acerto
+                            if nat == 1:
+                                outcome = "❌ **MISS (nat 1)**"
+                                hit = False
+                                crit = False
+                            elif nat == 20:
+                                outcome = "💥 **CRIT (nat 20)**"
+                                hit = True
+                                crit = True
+                            else:
+                                if target_ac and total >= int(target_ac):
+                                    outcome = f"✅ **HIT** vs AC {int(target_ac)}"
+                                    hit = True
+                                    crit = False
+                                elif target_ac:
+                                    outcome = f"❌ **MISS** vs AC {int(target_ac)}"
+                                    hit = False
+                                    crit = False
+                                else:
+                                    outcome = "🎲 **Rolado (sem AC)**"
+                                    hit = True
+                                    crit = False
+
+                            _log(f"🗡️ **{ch.character_name}** — Attack ({w.name}): {fmt_d20(rr)} → {outcome}")
+
+                            if hit and auto_damage:
+                                dmg_expr = critify(w.damage) if crit else w.damage
+                                dr = roll_expr(dmg_expr)
+                                tag = " (CRIT dmg)" if crit else ""
+                                _log(f"💥 **{ch.character_name}** — Damage {w.name}{tag}: {fmt_expr(dr)}")
+
+                            st.rerun()
+
+                        if r[2].button("🎯 Dano", key=f"dmg_{idx}_{ch.id}"):
+                            dr = roll_expr(w.damage)
+                            _log(f"💥 **{ch.character_name}** — Damage {w.name}: {fmt_expr(dr)}")
+                            st.rerun()
+
+            # EQUIPAMENTOS
+            with st.expander("➡️ Equipamentos", expanded=False):
+                text = "\n".join(ch.equipment or [])
+                new_text = st.text_area("Lista (1 item por linha)", value=text, height=220, key=f"equip_{ch.id}")
+                if st.button("💾 Salvar equipamentos", key=f"save_equip_{ch.id}", use_container_width=True):
+                    ch.equipment = [x.strip() for x in new_text.splitlines() if x.strip()]
+                    save_character(ch)
+                    st.success("Equipamentos salvos!")
+                    st.rerun()
+
+    # ====== COLUNA 3: LOG ======
+    with logcol:
         st.markdown("### 📜 Log")
         if st.button("Limpar log", use_container_width=True):
             st.session_state["log"] = []
