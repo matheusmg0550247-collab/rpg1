@@ -24,7 +24,7 @@ def apply_black_red_css() -> None:
 }
 
 /* ===== TEXTO BRANCO ===== */
-html, body, [data-testid="stAppViewContainer"] * { color: #ffffff; }
+html, body, [data-testid="stAppViewContainer"] * { color: #ffffff !important; }
 [data-testid="stMarkdownContainer"] * { color: #ffffff !important; }
 
 /* ===== SIDEBAR PRETO ===== */
@@ -49,12 +49,6 @@ div.stButton > button:hover {
   color: #0a0a0a !important;
 }
 
-/* ===== EXPANDER ===== */
-details summary {
-  border-left: 4px solid #ff2b2b !important;
-  padding-left: 10px !important;
-}
-
 /* ===== INPUTS (GERAL) ===== */
 div[data-baseweb="base-input"] {
   background-color: #0f0f0f !important;
@@ -67,7 +61,7 @@ div[data-baseweb="base-input"] textarea {
   color: #ffffff !important;
 }
 
-/* ===== NUMBER INPUT (AC DO ALVO) - corrigindo a “faixa branca” ===== */
+/* ===== NUMBER INPUT (AC do alvo etc) ===== */
 [data-testid="stNumberInput"] div[data-baseweb="base-input"] {
   background-color: #0f0f0f !important;
   border: 1px solid #ff2b2b !important;
@@ -77,19 +71,64 @@ div[data-baseweb="base-input"] textarea {
   background: transparent !important;
   color: #ffffff !important;
 }
-
-/* Os botões + / - do number input */
 [data-testid="stNumberInput"] button {
   background: #0f0f0f !important;
   color: #ffffff !important;
   border-left: 1px solid #2b2b2b !important;
 }
-[data-testid="stNumberInput"] button:hover {
-  background: #1a1a1a !important;
-}
+[data-testid="stNumberInput"] button:hover { background: #1a1a1a !important; }
 
 /* ===== CHECKBOX ===== */
 [data-testid="stCheckbox"] label { color: #ffffff !important; }
+
+/* ===== ALERTS / INFO / SUCCESS / ERROR ===== */
+div[data-testid="stAlert"] {
+  background: #0f0f0f !important;
+  border: 1px solid #2b2b2b !important;
+  border-left: 4px solid #ff2b2b !important;
+  border-radius: 12px !important;
+}
+div[data-testid="stAlert"] * { color: #ffffff !important; }
+
+/* ===== EXPANDER (o seu “Atributos”, “Importar ficha por PDF”, etc) ===== */
+div[data-testid="stExpander"] details {
+  background: transparent !important;
+}
+div[data-testid="stExpander"] details > summary {
+  background: #0f0f0f !important;
+  border: 1px solid #2b2b2b !important;
+  border-left: 4px solid #ff2b2b !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+}
+div[data-testid="stExpander"] details > summary:hover {
+  border-color: #ff2b2b !important;
+}
+div[data-testid="stExpander"] details > summary * {
+  color: #ffffff !important;
+}
+
+/* Conteúdo do expander */
+div[data-testid="stExpander"] div[role="region"] {
+  background: rgba(15,15,15,0.85) !important;
+  border: 1px solid #1f1f1f !important;
+  border-top: none !important;
+  border-radius: 0 0 12px 12px !important;
+  padding: 12px !important;
+}
+
+/* ===== FILE UPLOADER (Dropzone ficando claro) ===== */
+div[data-testid="stFileUploaderDropzone"] {
+  background: #0f0f0f !important;
+  border: 1px dashed #ff2b2b !important;
+  border-radius: 12px !important;
+}
+div[data-testid="stFileUploaderDropzone"] * {
+  color: #ffffff !important;
+}
+div[data-testid="stFileUploaderDropzone"] svg {
+  fill: #ffffff !important;
+}
 
 /* ===== CODE BLOCK ===== */
 [data-testid="stCodeBlock"], pre, code {
