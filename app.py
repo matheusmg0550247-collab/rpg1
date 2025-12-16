@@ -1,18 +1,21 @@
 import streamlit as st
 
-st.set_page_config(page_title="RPG Panel", page_icon="🎲", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="RPG Panel",
+    page_icon="🎲",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
 st.markdown("## 🎲 RPG Panel")
-c1, c2, c3 = st.columns(3)
 
-with c1:
-    if st.button("🧾 Fichas", use_container_width=True):
-        st.switch_page("pages/2_Fichas.py")
+# Menu no topo (links)
+m1, m2, m3, m4, m5 = st.columns([1, 1, 1, 1, 1.8])
+m1.page_link("app.py", label="🏠 Início")
+m2.page_link("pages/2_Fichas.py", label="🧾 Fichas")
+m3.page_link("pages/3_Combate.py", label="⚔️ Combate")
+m4.page_link("pages/4_Midia.py", label="🎵 Mídia")
+m5.page_link("pages/5_Config.py", label="⚙️ Config")
 
-with c2:
-    if st.button("⚔️ Combate", use_container_width=True):
-        st.switch_page("pages/3_Combate.py")
-
-with c3:
-    if st.button("🎵 Mídia", use_container_width=True):
-        st.switch_page("pages/4_Midia.py")
+st.divider()
+st.info("Use o menu acima. Você pode colapsar a lateral e usar só essa barra.")
