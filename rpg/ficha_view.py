@@ -3,7 +3,14 @@ import streamlit as st
 import uuid
 from pathlib import Path
 
-from rpg.storage import ensure_dirs, list_character_ids, load_character, save_character, PORTRAIT_DIR, delete_character
+from rpg.storage import (
+    ensure_dirs,
+    list_character_ids,
+    load_character,
+    save_character,
+    delete_character,
+    PORTRAIT_DIR,
+)
 from rpg.pdf_import import import_character_from_pdf
 from rpg.utils import ability_mod, proficiency_bonus
 from rpg.dice import roll_d20, roll_expr, critify, fmt_d20, fmt_expr
@@ -35,13 +42,13 @@ TEMPLATE_RACE = """## Raça
   - **Perícias:** +2
   - **Visão no escuro:** 18m
   - **Natureza morta viva:** não precisa respirar
-  - **Escalada de Aranha:** deslocamento de escalada igual ao deslocamento base.  
-    No **NVL 3**, pode se mover horizontalmente, verticalmente e até de ponta cabeça enquanto estiver com as mãos livres.
-  - **Mordida vampírica:** ataque desarmado que pode usar **Constituição** no ataque e no dano (se quiser).  
-    Se estiver com **menos da metade do HP**, realiza com **vantagem**.  
-    Quando causar o dano, **recupera em HP** o mesmo valor e esse dano também pode ser somado:
-    - ao seu **próximo TR** **ou**
-    - à sua **próxima jogada de ataque**
+  - **Escalada de Aranha:** deslocamento de escalada igual ao deslocamento base.
+    - No **NVL 3**, pode se mover horizontalmente, verticalmente e até de ponta cabeça enquanto estiver com as mãos livres
+  - **Mordida vampírica:** ataque desarmado que pode usar **Constituição** no ataque e no dano (se quiser).
+    - Se estiver com **menos da metade do HP**, realiza com **vantagem**
+    - Quando causar o dano:
+      - recupera em **HP** o mesmo valor
+      - e esse dano pode ser somado ao seu **próximo TR** ou à sua **próxima jogada de ataque**
 """
 
 TEMPLATE_BACKGROUND = """## Antecedente
@@ -87,16 +94,32 @@ TEMPLATE_CLASS = """## Classe (Bárbaro — Magia Selvagem)
 
 ensure_dirs()
 
+
 def _log(line: str) -> None:
     st.session_state["log"].insert(0, line)
+
+
+def _ensure_selected_id() -> None:
+    ids = list_character_ids()
+    if "selected_char_id" not in st.session_state:
+        st.session_state["selected_char_id"] = ids[0] if ids else None
+        return
+    # se estiver None e existirem fichas, seleciona a primeira
+    if st.session_state["selected_char_id"] is None and ids:
+        st.session_state["selected_char_id"] = ids[0]
+        return
+    # se id selecionado não existe mais, ajusta
+    if st.session_state["selected_char_id"] is not None and st.session_state["selected_char_id"] not in ids:
+        st.session_state["selected_char_id"] = ids[0] if ids else None
+
 
 def render():
     if "log" not in st.session_state:
         st.session_state["log"] = []
-    if "selected_char_id" not in st.session_state:
-        ids = list_character_ids()
-        st.session_state["selected_char_id"] = ids[0] if ids else None
 
+    _ensure_selected_id()
+
+    # Sidebar regras rápidas
     with st.sidebar:
         st.markdown("### 🎲 Regras rápidas")
         adv = st.checkbox("Vantagem", value=False)
@@ -108,7 +131,7 @@ def render():
 
     roster, sheet, logcol = st.columns([0.22, 0.48, 0.30], gap="large")
 
-    # ===== ROSTER + IMPORT =====
+    # ===== ROSTER + IMPORT + DELETE =====
     with roster:
         st.markdown("### 👥 Jogadores")
 
@@ -134,6 +157,10 @@ def render():
                 if not ch:
                     continue
 
+                confirm_key = "confirm_delete_%s" % cid
+                if confirm_key not in st.session_state:
+                    st.session_state[confirm_key] = False
+
                 with st.container(border=True):
                     portrait = getattr(ch, "portrait_path", None)
                     if portrait and Path(portrait).exists():
@@ -144,9 +171,32 @@ def render():
                     st.markdown("**%s**" % ch.character_name)
                     st.caption(ch.class_and_level)
 
-                    if st.button("➡️ Abrir", key="open_%s" % cid, use_container_width=True):
+                    colA, colB = st.columns([0.6, 0.4])
+
+                    if colA.button("➡️ Abrir", key="open_%s" % cid, use_container_width=True):
                         st.session_state["selected_char_id"] = cid
                         st.rerun()
+
+                    # Botão excluir com confirmação
+                    if not st.session_state[confirm_key]:
+                        if colB.button("🗑️ Excluir", key="del_%s" % cid, use_container_width=True):
+                            st.session_state[confirm_key] = True
+                            st.rerun()
+                    else:
+                        c1, c2 = st.columns(2)
+                        if c1.button("✅ Confirmar", key="del_yes_%s" % cid, use_container_width=True):
+                            delete_character(cid)
+
+                            # se apagou a ficha selecionada, limpa e escolhe outra se existir
+                            if st.session_state.get("selected_char_id") == cid:
+                                st.session_state["selected_char_id"] = None
+
+                            st.session_state[confirm_key] = False
+                            st.rerun()
+
+                        if c2.button("Cancelar", key="del_no_%s" % cid, use_container_width=True):
+                            st.session_state[confirm_key] = False
+                            st.rerun()
 
     # ===== personagem selecionado =====
     cid = st.session_state.get("selected_char_id")
@@ -171,7 +221,11 @@ def render():
             st.caption("%s • %s • Nível %d • PB +%d" % (ch.species, ch.class_and_level, ch.level, pb))
 
             with st.expander("➡️ 📷 Foto do jogador/personagem", expanded=False):
-                img = st.file_uploader("Enviar imagem (png/jpg)", type=["png", "jpg", "jpeg"], key="img_%s" % ch.id)
+                img = st.file_uploader(
+                    "Enviar imagem (png/jpg)",
+                    type=["png", "jpg", "jpeg"],
+                    key="img_%s" % ch.id
+                )
                 if img:
                     out = PORTRAIT_DIR / ("%s.png" % ch.id)
                     out.write_bytes(img.getvalue())
@@ -180,14 +234,16 @@ def render():
                     st.success("Foto salva!")
                     st.rerun()
 
-            # ===== NOVO: CARACTERÍSTICAS =====
+            # ===== CARACTERÍSTICAS =====
             with st.expander("➡️ Características (Raça / Antecedente / Classe)", expanded=False):
-                c1, c2 = st.columns([0.55, 0.45])
-                with c1:
-                    st.markdown("Você pode guardar aqui as regras da ficha em **Markdown** (e depois vamos puxar isso no Combate).")
-                with c2:
-                    if st.button("✨ Aplicar template (Dhampir/Aetherborn + Bárbaro Magia Selvagem)", use_container_width=True):
-                        # só aplica se estiver vazio (pra não sobrescrever sem querer)
+                left_info, right_btn = st.columns([0.55, 0.45])
+                with left_info:
+                    st.write("Guarde aqui as regras da ficha em **Markdown** (depois vamos puxar isso no Combate).")
+                with right_btn:
+                    if st.button(
+                        "✨ Aplicar template (Dhampir/Aetherborn + Bárbaro Magia Selvagem)",
+                        use_container_width=True
+                    ):
                         if not getattr(ch, "race_notes_md", ""):
                             ch.race_notes_md = TEMPLATE_RACE
                         if not getattr(ch, "background_notes_md", ""):
@@ -200,9 +256,21 @@ def render():
 
                 st.divider()
 
-                race_txt = st.text_area("Raça / Legado (Markdown)", value=getattr(ch, "race_notes_md", ""), height=220)
-                bg_txt = st.text_area("Antecedente (Markdown)", value=getattr(ch, "background_notes_md", ""), height=160)
-                class_txt = st.text_area("Classe / Caminho (Markdown)", value=getattr(ch, "class_notes_md", ""), height=300)
+                race_txt = st.text_area(
+                    "Raça / Legado (Markdown)",
+                    value=getattr(ch, "race_notes_md", ""),
+                    height=220
+                )
+                bg_txt = st.text_area(
+                    "Antecedente (Markdown)",
+                    value=getattr(ch, "background_notes_md", ""),
+                    height=160
+                )
+                class_txt = st.text_area(
+                    "Classe / Caminho (Markdown)",
+                    value=getattr(ch, "class_notes_md", ""),
+                    height=300
+                )
 
                 if st.button("💾 Salvar características", use_container_width=True):
                     ch.race_notes_md = race_txt
@@ -212,7 +280,6 @@ def render():
                     st.success("Características salvas!")
                     st.rerun()
 
-            # (opcional) Mostrar em modo leitura bonitão
             with st.expander("➡️ Ver características (modo leitura)", expanded=False):
                 if getattr(ch, "race_notes_md", ""):
                     st.markdown(ch.race_notes_md)
@@ -224,7 +291,7 @@ def render():
             # ===== ATRIBUTOS =====
             with st.expander("➡️ Atributos (clique para rolar)", expanded=True):
                 cols = st.columns(6)
-                abs_ = ["STR","DEX","CON","INT","WIS","CHA"]
+                abs_ = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
                 for i, ab in enumerate(abs_):
                     with cols[i]:
                         score = getattr(ch, "%s_score" % ab.lower())
