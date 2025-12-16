@@ -48,3 +48,4 @@ class Character(BaseModel):
     # NOVO: foto + equipamentos
     portrait_path: Optional[str] = None
     equipment: List[str] = Field(default_factory=list)
+    
