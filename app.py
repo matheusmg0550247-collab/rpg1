@@ -1,30 +1,30 @@
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from rpg.storage import ensure_dirs
 import streamlit as st
-from rpg.storage import ensure_dirs
 
 st.set_page_config(
-    page_title="RPG Panel (D&D Helper)",
+    page_title="RPG Panel",
     page_icon="🎲",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-ensure_dirs()
+st.markdown("## 🎲 RPG Panel")
+st.caption("Menu rápido no topo (você ainda pode usar o menu lateral se quiser).")
 
-st.title("🎲 RPG Panel (Starter)")
-st.write("Use as páginas no menu lateral: **Dados**, **Fichas**, **Combate**, **Mídia**, **Config**.")
+# --- MENU DO TOPO ---
+c1, c2, c3, c4 = st.columns([1, 1, 1, 3])
 
-# Estado global básico
-if "log" not in st.session_state:
-    st.session_state["log"] = []
-if "media" not in st.session_state:
-    st.session_state["media"] = {"audio": None, "video": None}
+with c1:
+    st.page_link("app.py", label="🏠 Início")
 
-st.info("Dica: comece criando uma ficha em **Fichas** e depois abra **Combate**.")
+with c2:
+    st.page_link("pages/2_Fichas.py", label="🧾 Fichas")
+
+with c3:
+    st.page_link("pages/3_Combate.py", label="⚔️ Combate")
+
+with c4:
+    st.page_link("pages/4_Midia.py", label="🎵 Mídia")
+
+st.divider()
+
+st.info("Use o menu acima para ir direto em **Fichas** ou **Combate**.")
