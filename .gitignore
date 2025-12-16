@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+.streamlit/secrets.toml
+data/media/audio/uploads/
+data/media/video/uploads/
