@@ -46,27 +46,6 @@ Vocês estão a poucos metros da Tenda de Comando. O acampamento ao redor é bar
 """
 
 
-def _audio_autoplay_player_mp4(file_path: Path) -> None:
-    data = file_path.read_bytes()
-    b64 = base64.b64encode(data).decode("utf-8")
-
-    html = f"""
-    <div style="border:1px solid #ff2b2b; border-radius:12px; padding:12px; background:#0f0f0f;">
-      <div style="color:#fff; font-family:sans-serif; margin-bottom:8px; font-weight:600;">
-        🎵 Música da Introdução
-      </div>
-      <audio controls autoplay style="width: 100%;">
-        <source src="data:audio/mp4;base64,{b64}" type="audio/mp4">
-        Seu navegador não suporta áudio mp4.
-      </audio>
-      <div style="color:#bbb; font-size:12px; margin-top:8px;">
-        Se o autoplay for bloqueado, clique em Play.
-      </div>
-    </div>
-    """
-    components.html(html, height=130)
-
-
 def _find_photo() -> Path | None:
     for p in PHOTO_CANDIDATES:
         if p.exists():
@@ -74,32 +53,36 @@ def _find_photo() -> Path | None:
     return None
 
 
+def _audio_player_mp4_autoplay(file_path: Path) -> None:
+    # Player sem título, só o controle
+    data = file_path.read_bytes()
+    b64 = base64.b64encode(data).decode("utf-8")
+    html = f"""
+    <div style="border:1px solid #ff2b2b; border-radius:12px; padding:10px; background:#0f0f0f;">
+      <audio controls autoplay style="width: 100%;">
+        <source src="data:audio/mp4;base64,{b64}" type="audio/mp4">
+      </audio>
+    </div>
+    """
+    components.html(html, height=90)
+
+
 def render() -> None:
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
     st.markdown(INTRO_TEXT)
     st.divider()
-    st.subheader("🎬 Mídia")
 
-    col1, col2 = st.columns([0.55, 0.45], gap="large")
+    col1, col2 = st.columns([0.62, 0.38], gap="large")
 
     with col1:
-        st.markdown("### 🖼️ Foto1")
         photo = _find_photo()
         if photo:
             st.image(photo, use_container_width=True)
-        else:
-            st.info("Coloque a imagem em `assets/foto1.jpg`.")
 
-        st.markdown("### 🎥 Video1")
         if VIDEO_PATH.exists():
             st.video(VIDEO_PATH.read_bytes())
-        else:
-            st.info("Coloque o vídeo em `assets/video1.mp4`.")
 
     with col2:
-        st.markdown("### 🎵 Musica1 (mp4)")
         if MUSIC_PATH.exists():
-            _audio_autoplay_player_mp4(MUSIC_PATH)
-        else:
-            st.info("Coloque a música em `assets/musica1.mp4`.")
+            _audio_player_mp4_autoplay(MUSIC_PATH)
