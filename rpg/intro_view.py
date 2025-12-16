@@ -9,14 +9,21 @@ import streamlit.components.v1 as components
 
 
 ASSETS_DIR = Path(__file__).resolve().parents[1] / "assets"
-PHOTO_PATH = ASSETS_DIR / "foto1.png"       # Foto1
+
+# Foto1 (jpg) com fallback
+PHOTO_CANDIDATES = [
+    ASSETS_DIR / "foto1.jpg",
+    ASSETS_DIR / "foto1.jpeg",
+    ASSETS_DIR / "foto1.png",
+]
+
 VIDEO_PATH = ASSETS_DIR / "video1.mp4"      # Video1
 MUSIC_PATH = ASSETS_DIR / "musica1.mp4"     # Musica1 (mp4)
 
 INTRO_TEXT = """# 📜 Prólogo: A Sombra da Vitória
 
 **Região:** A Fronteira Norte do Mar da Lua (The Moonsea)  
-**Ano:** 1496 CV, O Ano do Guerreiro Desatento
+**Ano:** 1496 CV, O Ano K do Guerreiro Desatento
 
 O céu sobre o Mar da Lua está cinza há semanas, manchado pela fumaça das fogueiras de guerra. As notícias viajaram rápido: a Legião da Mão de Ferro, uma armada massiva de Hobgoblins vinda de além-mar, rompeu as defesas costeiras. Onde seus navios negros atracam, a terra morre.
 
@@ -66,6 +73,13 @@ def _audio_autoplay_player_mp4(file_path: Path) -> None:
     components.html(html, height=130)
 
 
+def _find_photo() -> Path | None:
+    for p in PHOTO_CANDIDATES:
+        if p.exists():
+            return p
+    return None
+
+
 def render() -> None:
     st.markdown(INTRO_TEXT)
 
@@ -78,10 +92,11 @@ def render() -> None:
 
     with col1:
         st.markdown("### 🖼️ Foto1")
-        if PHOTO_PATH.exists():
-            st.image(PHOTO_PATH, use_container_width=True)
+        photo = _find_photo()
+        if photo:
+            st.image(photo, use_container_width=True)
         else:
-            st.info("Coloque sua imagem em `assets/foto1.png` (na raiz do repo).")
+            st.info("Coloque sua imagem em `assets/foto1.jpg` (ou .jpeg/.png).")
 
         st.markdown("### 🎥 Video1")
         if VIDEO_PATH.exists():
@@ -99,7 +114,7 @@ def render() -> None:
         st.markdown("### 📁 Onde colocar os arquivos")
         st.code(
             "assets/\n"
-            "  foto1.png\n"
+            "  foto1.jpg\n"
             "  video1.mp4\n"
             "  musica1.mp4\n",
             language="text",
