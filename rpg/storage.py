@@ -2,6 +2,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional
 from .models import Character
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+CHAR_DIR = DATA_DIR / "characters"
+PORTRAIT_DIR = DATA_DIR / "portraits"
+
+def ensure_dirs() -> None:
+    CHAR_DIR.mkdir(parents=True, exist_ok=True)
+    PORTRAIT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 CHAR_DIR = DATA_DIR / "characters"
