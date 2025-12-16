@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import sys
 from pathlib import Path
 
@@ -6,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import streamlit as st
+
 from rpg.storage import ensure_dirs
 from rpg.ficha_view import render as render_ficha
 from rpg.combate_view import render as render_combate
@@ -19,9 +22,9 @@ st.set_page_config(
 
 ensure_dirs()
 
-st.markdown("## 🎲 RPG Panel")
+st.title("RPG Panel")
 
-tab1, tab2 = st.tabs(["🧾 Ficha", "⚔️ Combate"])
+tab1, tab2 = st.tabs(["Ficha", "Combate"])
 with tab1:
     render_ficha()
 with tab2:
