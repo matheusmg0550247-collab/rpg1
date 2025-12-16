@@ -36,16 +36,17 @@ class Character(BaseModel):
     temp_hp: int = 0
     initiative_bonus: int = 0
 
-    # Proficiencies (strings padrão)
-    # saves: ["STR","DEX","CON","INT","WIS","CHA"]
+    # Proficiencies
     save_proficiencies: List[str] = Field(default_factory=list)
-
-    # skills: ["Athletics","Stealth",...]
     skill_proficiencies: List[str] = Field(default_factory=list)
 
     weapons: List[Weapon] = Field(default_factory=list)
 
-    # NOVO: foto + equipamentos
+    # Foto + equipamentos
     portrait_path: Optional[str] = None
     equipment: List[str] = Field(default_factory=list)
-    
+
+    # NOVO: características / regras da ficha (texto em Markdown)
+    race_notes_md: str = ""
+    background_notes_md: str = ""
+    class_notes_md: str = ""
