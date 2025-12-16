@@ -142,3 +142,73 @@ def render():
                     if r[1].button(f"{bonus:+d}", key=f"skill_{skill}_{ch.id}"):
                         rr = roll_d20(bonus=bonus, advantage=adv, disadvantage=dis)
                         tag = " (PROF)" if prof else ""
+                        _log(f"🎯 **{ch.character_name}** — {skill}{tag}: {fmt_d20(rr)}")
+                        st.rerun()
+                    r[2].write("✅" if prof else "")
+
+            with st.expander("➡️ Ataques (com regras)", expanded=False):
+                if not ch.weapons:
+                    st.info("Sem armas cadastradas na ficha.")
+                else:
+                    for idx, w in enumerate(ch.weapons):
+                        r = st.columns([0.50, 0.18, 0.32])
+                        r[0].write(f"**{w.name}** — {w.damage} ({w.damage_type})")
+
+                        if r[1].button(f"{int(w.attack_bonus):+d}", key=f"atk_{idx}_{ch.id}"):
+                            rr = roll_d20(bonus=int(w.attack_bonus), advantage=adv, disadvantage=dis)
+                            nat = rr["chosen"]
+                            total = rr["total"]
+
+                            if nat == 1:
+                                outcome = "❌ **MISS (nat 1)**"
+                                hit = False
+                                crit = False
+                            elif nat == 20:
+                                outcome = "💥 **CRIT (nat 20)**"
+                                hit = True
+                                crit = True
+                            else:
+                                if target_ac and total >= int(target_ac):
+                                    outcome = f"✅ **HIT** vs AC {int(target_ac)}"
+                                    hit = True
+                                    crit = False
+                                elif target_ac:
+                                    outcome = f"❌ **MISS** vs AC {int(target_ac)}"
+                                    hit = False
+                                    crit = False
+                                else:
+                                    outcome = "🎲 **Rolado (sem AC)**"
+                                    hit = True
+                                    crit = False
+
+                            _log(f"🗡️ **{ch.character_name}** — Attack ({w.name}): {fmt_d20(rr)} → {outcome}")
+
+                            if hit and auto_damage:
+                                dmg_expr = critify(w.damage) if crit else w.damage
+                                dr = roll_expr(dmg_expr)
+                                tag = " (CRIT dmg)" if crit else ""
+                                _log(f"💥 **{ch.character_name}** — Damage {w.name}{tag}: {fmt_expr(dr)}")
+
+                            st.rerun()
+
+                        if r[2].button("🎯 Dano", key=f"dmg_{idx}_{ch.id}"):
+                            dr = roll_expr(w.damage)
+                            _log(f"💥 **{ch.character_name}** — Damage {w.name}: {fmt_expr(dr)}")
+                            st.rerun()
+
+            with st.expander("➡️ Equipamentos", expanded=False):
+                text = "\n".join(getattr(ch, "equipment", []) or [])
+                new_text = st.text_area("Lista (1 item por linha)", value=text, height=220, key=f"equip_{ch.id}")
+                if st.button("💾 Salvar equipamentos", key=f"save_equip_{ch.id}", use_container_width=True):
+                    ch.equipment = [x.strip() for x in new_text.splitlines() if x.strip()]
+                    save_character(ch)
+                    st.success("Equipamentos salvos!")
+                    st.rerun()
+
+    with logcol:
+        st.markdown("### 📜 Log")
+        if st.button("Limpar log", use_container_width=True):
+            st.session_state["log"] = []
+            st.rerun()
+        for line in st.session_state["log"][:250]:
+            st.markdown(line)
