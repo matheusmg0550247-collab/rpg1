@@ -1,4 +1,14 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import streamlit as st
+from rpg.storage import ensure_dirs
+from rpg.ficha_view import render as render_ficha
+from rpg.combate_view import render as render_combate
 
 st.set_page_config(
     page_title="RPG Panel",
@@ -7,15 +17,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+ensure_dirs()
+
 st.markdown("## 🎲 RPG Panel")
 
-# Menu no topo (links)
-m1, m2, m3, m4, m5 = st.columns([1, 1, 1, 1, 1.8])
-m1.page_link("app.py", label="🏠 Início")
-m2.page_link("pages/2_Fichas.py", label="🧾 Fichas")
-m3.page_link("pages/3_Combate.py", label="⚔️ Combate")
-m4.page_link("pages/4_Midia.py", label="🎵 Mídia")
-m5.page_link("pages/5_Config.py", label="⚙️ Config")
-
-st.divider()
-st.info("Use o menu acima. Você pode colapsar a lateral e usar só essa barra.")
+tab1, tab2 = st.tabs(["🧾 Ficha", "⚔️ Combate"])
+with tab1:
+    render_ficha()
+with tab2:
+    render_combate()
