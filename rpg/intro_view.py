@@ -7,23 +7,21 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-
 ASSETS_DIR = Path(__file__).resolve().parents[1] / "assets"
 
-# Foto1 (jpg) com fallback
 PHOTO_CANDIDATES = [
     ASSETS_DIR / "foto1.jpg",
     ASSETS_DIR / "foto1.jpeg",
     ASSETS_DIR / "foto1.png",
 ]
 
-VIDEO_PATH = ASSETS_DIR / "video1.mp4"      # Video1
-MUSIC_PATH = ASSETS_DIR / "musica1.mp4"     # Musica1 (mp4)
+VIDEO_PATH = ASSETS_DIR / "video1.mp4"
+MUSIC_PATH = ASSETS_DIR / "musica1.mp4"
 
 INTRO_TEXT = """# 📜 Prólogo: A Sombra da Vitória
 
 **Região:** A Fronteira Norte do Mar da Lua (The Moonsea)  
-**Ano:** 1496 CV, O Ano K do Guerreiro Desatento
+**Ano:** 1496 CV, O Ano do Guerreiro Desatento
 
 O céu sobre o Mar da Lua está cinza há semanas, manchado pela fumaça das fogueiras de guerra. As notícias viajaram rápido: a Legião da Mão de Ferro, uma armada massiva de Hobgoblins vinda de além-mar, rompeu as defesas costeiras. Onde seus navios negros atracam, a terra morre.
 
@@ -49,23 +47,19 @@ Vocês estão a poucos metros da Tenda de Comando. O acampamento ao redor é bar
 
 
 def _audio_autoplay_player_mp4(file_path: Path) -> None:
-    """
-    Player HTML5 com autoplay + controles.
-    Observação: navegadores podem bloquear autoplay.
-    """
     data = file_path.read_bytes()
     b64 = base64.b64encode(data).decode("utf-8")
 
     html = f"""
     <div style="border:1px solid #ff2b2b; border-radius:12px; padding:12px; background:#0f0f0f;">
-      <div style="color:#f5f5f5; font-family:sans-serif; margin-bottom:8px;">
+      <div style="color:#fff; font-family:sans-serif; margin-bottom:8px; font-weight:600;">
         🎵 Música da Introdução
       </div>
       <audio controls autoplay style="width: 100%;">
         <source src="data:audio/mp4;base64,{b64}" type="audio/mp4">
         Seu navegador não suporta áudio mp4.
       </audio>
-      <div style="color:#aaa; font-size:12px; margin-top:8px;">
+      <div style="color:#bbb; font-size:12px; margin-top:8px;">
         Se o autoplay for bloqueado, clique em Play.
       </div>
     </div>
@@ -81,12 +75,11 @@ def _find_photo() -> Path | None:
 
 
 def render() -> None:
-    st.markdown(INTRO_TEXT)
+    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
+    st.markdown(INTRO_TEXT)
     st.divider()
     st.subheader("🎬 Mídia")
-
-    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
     col1, col2 = st.columns([0.55, 0.45], gap="large")
 
@@ -96,26 +89,17 @@ def render() -> None:
         if photo:
             st.image(photo, use_container_width=True)
         else:
-            st.info("Coloque sua imagem em `assets/foto1.jpg` (ou .jpeg/.png).")
+            st.info("Coloque a imagem em `assets/foto1.jpg`.")
 
         st.markdown("### 🎥 Video1")
         if VIDEO_PATH.exists():
             st.video(VIDEO_PATH.read_bytes())
         else:
-            st.info("Coloque seu vídeo em `assets/video1.mp4`.")
+            st.info("Coloque o vídeo em `assets/video1.mp4`.")
 
     with col2:
         st.markdown("### 🎵 Musica1 (mp4)")
         if MUSIC_PATH.exists():
             _audio_autoplay_player_mp4(MUSIC_PATH)
         else:
-            st.info("Coloque sua música em `assets/musica1.mp4` (mp4).")
-
-        st.markdown("### 📁 Onde colocar os arquivos")
-        st.code(
-            "assets/\n"
-            "  foto1.jpg\n"
-            "  video1.mp4\n"
-            "  musica1.mp4\n",
-            language="text",
-        )
+            st.info("Coloque a música em `assets/musica1.mp4`.")
