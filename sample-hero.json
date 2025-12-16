@@ -1,0 +1,32 @@
+{
+  "id": "sample-hero",
+  "character_name": "Aldren",
+  "player_name": "Matheus",
+  "species": "Human",
+  "class_and_level": "Fighter 1",
+  "background": "Soldier",
+  "level": 1,
+  "str_score": 16,
+  "dex_score": 12,
+  "con_score": 14,
+  "int_score": 10,
+  "wis_score": 10,
+  "cha_score": 8,
+  "ac": 16,
+  "speed": 30,
+  "max_hp": 12,
+  "current_hp": 12,
+  "temp_hp": 0,
+  "initiative_bonus": 1,
+  "save_proficiencies": [],
+  "skill_proficiencies": [],
+  "weapons": [
+    {
+      "name": "Longsword",
+      "attack_bonus": 5,
+      "damage": "1d8+3",
+      "damage_type": "slashing",
+      "notes": ""
+    }
+  ]
+}
