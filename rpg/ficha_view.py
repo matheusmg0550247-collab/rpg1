@@ -153,3 +153,47 @@ def render():
                 # regras de acerto
                 if nat == 1:
                     outcome = "❌ **MISS (nat 1)**"
+                    hit = False
+                    crit = False
+                elif nat == 20:
+                    outcome = "💥 **CRIT (nat 20)**"
+                    hit = True
+                    crit = True
+                else:
+                    if target_ac and total >= int(target_ac):
+                        outcome = f"✅ **HIT** vs AC {int(target_ac)}"
+                        hit = True
+                        crit = False
+                    elif target_ac:
+                        outcome = f"❌ **MISS** vs AC {int(target_ac)}"
+                        hit = False
+                        crit = False
+                    else:
+                        outcome = "🎲 **Rolado (sem AC)**"
+                        hit = True
+                        crit = False
+
+                _log(f"🗡️ **{ch.character_name}** — Attack ({w.name}): {fmt_d20(rr)} → {outcome}")
+
+                if hit and auto_damage:
+                    dmg_expr = critify(w.damage) if crit else w.damage
+                    dr = roll_expr(dmg_expr)
+                    tag = " (CRIT dmg)" if crit else ""
+                    _log(f"💥 **{ch.character_name}** — Damage {w.name}{tag}: {fmt_expr(dr)}")
+
+                st.rerun()
+
+            if r[2].button("🎯 Dano", key=f"dmg_{idx}"):
+                dr = roll_expr(w.damage)
+                _log(f"💥 **{ch.character_name}** — Damage {w.name}: {fmt_expr(dr)}")
+                st.rerun()
+
+    # ====== LOG (direita) ======
+    with right:
+        st.markdown("### 📜 Log")
+        if st.button("Limpar log", use_container_width=True):
+            st.session_state["log"] = []
+            st.rerun()
+
+        for line in st.session_state["log"][:250]:
+            st.markdown(line)
