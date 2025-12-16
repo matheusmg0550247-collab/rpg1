@@ -3,15 +3,15 @@ import random
 import pandas as pd
 
 def render():
-    st.subheader("⚔️ Combate (MVP)")
-    st.caption("Aqui vamos evoluir para iniciativa, turnos, condições, etc.")
+    st.markdown("### ⚔️ Combate (MVP)")
+    st.caption("Agora está simples. Depois evoluímos para turnos/condições/HP por alvo e integração com as fichas.")
 
     if "combat" not in st.session_state:
         st.session_state["combat"] = {"round": 1, "turn": 0, "combatants": []}
 
     combat = st.session_state["combat"]
 
-    with st.expander("Adicionar combatente"):
+    with st.expander("Adicionar combatente", expanded=True):
         name = st.text_input("Nome", value="Goblin")
         initb = st.number_input("Bônus iniciativa", -20, 20, value=2)
         if st.button("Adicionar"):
@@ -19,7 +19,7 @@ def render():
             st.rerun()
 
     cols = st.columns(4)
-    if cols[0].button("🎲 Rolar iniciativa"):
+    if cols[0].button("🎲 Rolar iniciativa") and combat["combatants"]:
         for c in combat["combatants"]:
             r = random.randint(1, 20)
             c["roll"] = r
@@ -42,6 +42,7 @@ def render():
         st.rerun()
 
     st.markdown(f"**Rodada:** {combat['round']}")
+
     if combat["combatants"]:
         rows = []
         for i, c in enumerate(combat["combatants"]):
@@ -49,8 +50,4 @@ def render():
                 "": "➡️" if i == combat["turn"] else "",
                 "Nome": c["name"],
                 "Roll": c["roll"] if c["roll"] is not None else "",
-                "Init": c["init"] if c["init"] is not None else "",
-            })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    else:
-        st.info("Adicione combatentes para começar.")
+                "Init": c["init"] if c["in]()
