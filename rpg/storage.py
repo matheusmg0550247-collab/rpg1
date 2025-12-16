@@ -30,3 +30,25 @@ def save_character(ch: Character) -> None:
     ensure_dirs()
     path = CHAR_DIR / f"{ch.id}.json"
     path.write_text(ch.model_dump_json(indent=2, ensure_ascii=False), encoding="utf-8")
+
+def delete_character(char_id: str) -> bool:
+    """
+    Apaga a ficha (JSON) e a foto associada (se existir).
+    Retorna True se removeu algo.
+    """
+    ensure_dirs()
+    removed = False
+
+    # remove JSON
+    json_path = CHAR_DIR / f"{char_id}.json"
+    if json_path.exists():
+        json_path.unlink()
+        removed = True
+
+    # remove foto padrão (salva como data/portraits/<id>.png)
+    portrait_path = PORTRAIT_DIR / f"{char_id}.png"
+    if portrait_path.exists():
+        portrait_path.unlink()
+        removed = True
+
+    return removed
