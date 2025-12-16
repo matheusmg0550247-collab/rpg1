@@ -51,7 +51,7 @@ def render():
 
     roster, sheet, logcol = st.columns([0.22, 0.48, 0.30], gap="large")
 
-    # ROSTER + IMPORT
+    # ROSTER
     with roster:
         st.markdown("### 👥 Jogadores")
 
@@ -60,7 +60,7 @@ def render():
             if pdf:
                 new_id = uuid.uuid4().hex[:10]
                 ch_new = import_character_from_pdf(pdf.getvalue(), new_id)
-                st.success(f"Detectado: {ch_new.character_name} ({ch_new.class_and_level})")
+                st.success("Detectado: %s (%s)" % (ch_new.character_name, ch_new.class_and_level))
                 if st.button("✅ Salvar como nova ficha", use_container_width=True):
                     save_character(ch_new)
                     st.session_state["selected_char_id"] = ch_new.id
@@ -83,14 +83,14 @@ def render():
                     else:
                         st.caption("📷 Sem foto")
 
-                    st.markdown(f"**{ch.character_name}**")
+                    st.markdown("**%s**" % ch.character_name)
                     st.caption(ch.class_and_level)
 
-                    if st.button("➡️ Abrir", key=f"open_{cid}", use_container_width=True):
+                    if st.button("➡️ Abrir", key="open_%s" % cid, use_container_width=True):
                         st.session_state["selected_char_id"] = cid
                         st.rerun()
 
-    # PERSONAGEM SELECIONADO
+    # personagem selecionado
     cid = st.session_state.get("selected_char_id")
     ch = load_character(cid) if cid else None
 
@@ -108,13 +108,13 @@ def render():
                 "CHA": ability_mod(ch.cha_score),
             }
 
-            st.markdown(f"## 🧾 {ch.character_name}")
-            st.caption(f"{ch.species} • {ch.class_and_level} • Nível {ch.level} • PB +{pb}")
+            st.markdown("## 🧾 %s" % ch.character_name)
+            st.caption("%s • %s • Nível %d • PB +%d" % (ch.species, ch.class_and_level, ch.level, pb))
 
             with st.expander("➡️ 📷 Foto do jogador/personagem", expanded=False):
-                img = st.file_uploader("Enviar imagem (png/jpg)", type=["png", "jpg", "jpeg"], key=f"img_{ch.id}")
+                img = st.file_uploader("Enviar imagem (png/jpg)", type=["png", "jpg", "jpeg"], key="img_%s" % ch.id)
                 if img:
-                    out = PORTRAIT_DIR / f"{ch.id}.png"
+                    out = PORTRAIT_DIR / ("%s.png" % ch.id)
                     out.write_bytes(img.getvalue())
                     ch.portrait_path = str(out)
                     save_character(ch)
@@ -123,14 +123,15 @@ def render():
 
             with st.expander("➡️ Atributos (clique para rolar)", expanded=True):
                 cols = st.columns(6)
-                for ab in ["STR","DEX","CON","INT","WIS","CHA"]:
-                    with cols[["STR","DEX","CON","INT","WIS","CHA"].index(ab)]:
-                        score = getattr(ch, f"{ab.lower()}_score")
+                abs_ = ["STR","DEX","CON","INT","WIS","CHA"]
+                for i, ab in enumerate(abs_):
+                    with cols[i]:
+                        score = getattr(ch, "%s_score" % ab.lower())
                         mod = mods[ab]
-                        st.markdown(f"**{ab}**  \n{score}")
-                        if st.button(f"{mod:+d}", key=f"abil_{ab}_{ch.id}"):
+                        st.markdown("**%s**  \n%s" % (ab, score))
+                        if st.button("%+d" % mod, key="abil_%s_%s" % (ab, ch.id)):
                             rr = roll_d20(bonus=mod, advantage=adv, disadvantage=dis)
-                            _log(f"🧠 **{ch.character_name}** — {ab} Check: {fmt_d20(rr)}")
+                            _log("🧠 **%s** — %s Check: %s" % (ch.character_name, ab, fmt_d20(rr)))
                             st.rerun()
 
             with st.expander("➡️ Perícias (clique para rolar)", expanded=False):
@@ -138,11 +139,11 @@ def render():
                     prof = skill in (ch.skill_proficiencies or [])
                     bonus = mods[ab] + (pb if prof else 0)
                     r = st.columns([0.55, 0.2, 0.25])
-                    r[0].write(f"{skill} *( {ab} )*")
-                    if r[1].button(f"{bonus:+d}", key=f"skill_{skill}_{ch.id}"):
+                    r[0].write("%s *( %s )*" % (skill, ab))
+                    if r[1].button("%+d" % bonus, key="skill_%s_%s" % (skill, ch.id)):
                         rr = roll_d20(bonus=bonus, advantage=adv, disadvantage=dis)
                         tag = " (PROF)" if prof else ""
-                        _log(f"🎯 **{ch.character_name}** — {skill}{tag}: {fmt_d20(rr)}")
+                        _log("🎯 **%s** — %s%s: %s" % (ch.character_name, skill, tag, fmt_d20(rr)))
                         st.rerun()
                     r[2].write("✅" if prof else "")
 
@@ -152,9 +153,9 @@ def render():
                 else:
                     for idx, w in enumerate(ch.weapons):
                         r = st.columns([0.50, 0.18, 0.32])
-                        r[0].write(f"**{w.name}** — {w.damage} ({w.damage_type})")
+                        r[0].write("**%s** — %s (%s)" % (w.name, w.damage, w.damage_type))
 
-                        if r[1].button(f"{int(w.attack_bonus):+d}", key=f"atk_{idx}_{ch.id}"):
+                        if r[1].button("%+d" % int(w.attack_bonus), key="atk_%d_%s" % (idx, ch.id)):
                             rr = roll_d20(bonus=int(w.attack_bonus), advantage=adv, disadvantage=dis)
                             nat = rr["chosen"]
                             total = rr["total"]
@@ -169,11 +170,11 @@ def render():
                                 crit = True
                             else:
                                 if target_ac and total >= int(target_ac):
-                                    outcome = f"✅ **HIT** vs AC {int(target_ac)}"
+                                    outcome = "✅ **HIT** vs AC %d" % int(target_ac)
                                     hit = True
                                     crit = False
                                 elif target_ac:
-                                    outcome = f"❌ **MISS** vs AC {int(target_ac)}"
+                                    outcome = "❌ **MISS** vs AC %d" % int(target_ac)
                                     hit = False
                                     crit = False
                                 else:
@@ -181,25 +182,25 @@ def render():
                                     hit = True
                                     crit = False
 
-                            _log(f"🗡️ **{ch.character_name}** — Attack ({w.name}): {fmt_d20(rr)} → {outcome}")
+                            _log("🗡️ **%s** — Attack (%s): %s → %s" % (ch.character_name, w.name, fmt_d20(rr), outcome))
 
                             if hit and auto_damage:
                                 dmg_expr = critify(w.damage) if crit else w.damage
                                 dr = roll_expr(dmg_expr)
                                 tag = " (CRIT dmg)" if crit else ""
-                                _log(f"💥 **{ch.character_name}** — Damage {w.name}{tag}: {fmt_expr(dr)}")
+                                _log("💥 **%s** — Damage %s%s: %s" % (ch.character_name, w.name, tag, fmt_expr(dr)))
 
                             st.rerun()
 
-                        if r[2].button("🎯 Dano", key=f"dmg_{idx}_{ch.id}"):
+                        if r[2].button("🎯 Dano", key="dmg_%d_%s" % (idx, ch.id)):
                             dr = roll_expr(w.damage)
-                            _log(f"💥 **{ch.character_name}** — Damage {w.name}: {fmt_expr(dr)}")
+                            _log("💥 **%s** — Damage %s: %s" % (ch.character_name, w.name, fmt_expr(dr)))
                             st.rerun()
 
             with st.expander("➡️ Equipamentos", expanded=False):
                 text = "\n".join(getattr(ch, "equipment", []) or [])
-                new_text = st.text_area("Lista (1 item por linha)", value=text, height=220, key=f"equip_{ch.id}")
-                if st.button("💾 Salvar equipamentos", key=f"save_equip_{ch.id}", use_container_width=True):
+                new_text = st.text_area("Lista (1 item por linha)", value=text, height=220, key="equip_%s" % ch.id)
+                if st.button("💾 Salvar equipamentos", key="save_equip_%s" % ch.id, use_container_width=True):
                     ch.equipment = [x.strip() for x in new_text.splitlines() if x.strip()]
                     save_character(ch)
                     st.success("Equipamentos salvos!")
