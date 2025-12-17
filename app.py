@@ -12,6 +12,7 @@ from rpg.storage import ensure_dirs
 from rpg.intro_view import render as render_intro
 from rpg.ficha_view import render as render_ficha
 from rpg.combate_view import render as render_combate
+from rpg.monsters_view import render as render_monsters
 
 
 def apply_black_red_css() -> None:
@@ -61,16 +62,13 @@ div[data-baseweb="base-input"] textarea {
   color: #ffffff !important;
 }
 
-/* ===== NUMBER INPUT (AC do alvo etc) ===== */
+/* ===== NUMBER INPUT (AC etc) ===== */
 [data-testid="stNumberInput"] div[data-baseweb="base-input"] {
   background-color: #0f0f0f !important;
   border: 1px solid #ff2b2b !important;
   border-radius: 10px !important;
 }
-[data-testid="stNumberInput"] input {
-  background: transparent !important;
-  color: #ffffff !important;
-}
+[data-testid="stNumberInput"] input { background: transparent !important; color: #ffffff !important; }
 [data-testid="stNumberInput"] button {
   background: #0f0f0f !important;
   color: #ffffff !important;
@@ -78,10 +76,7 @@ div[data-baseweb="base-input"] textarea {
 }
 [data-testid="stNumberInput"] button:hover { background: #1a1a1a !important; }
 
-/* ===== CHECKBOX ===== */
-[data-testid="stCheckbox"] label { color: #ffffff !important; }
-
-/* ===== ALERTS / INFO / SUCCESS / ERROR ===== */
+/* ===== ALERTS ===== */
 div[data-testid="stAlert"] {
   background: #0f0f0f !important;
   border: 1px solid #2b2b2b !important;
@@ -90,10 +85,7 @@ div[data-testid="stAlert"] {
 }
 div[data-testid="stAlert"] * { color: #ffffff !important; }
 
-/* ===== EXPANDER (o seu “Atributos”, “Importar ficha por PDF”, etc) ===== */
-div[data-testid="stExpander"] details {
-  background: transparent !important;
-}
+/* ===== EXPANDER ===== */
 div[data-testid="stExpander"] details > summary {
   background: #0f0f0f !important;
   border: 1px solid #2b2b2b !important;
@@ -101,14 +93,6 @@ div[data-testid="stExpander"] details > summary {
   border-radius: 12px !important;
   padding: 10px 12px !important;
 }
-div[data-testid="stExpander"] details > summary:hover {
-  border-color: #ff2b2b !important;
-}
-div[data-testid="stExpander"] details > summary * {
-  color: #ffffff !important;
-}
-
-/* Conteúdo do expander */
 div[data-testid="stExpander"] div[role="region"] {
   background: rgba(15,15,15,0.85) !important;
   border: 1px solid #1f1f1f !important;
@@ -117,18 +101,34 @@ div[data-testid="stExpander"] div[role="region"] {
   padding: 12px !important;
 }
 
-/* ===== FILE UPLOADER (Dropzone ficando claro) ===== */
-div[data-testid="stFileUploaderDropzone"] {
+/* ===== FILE UPLOADER (FIX do branco) ===== */
+div[data-testid="stFileUploader"], div[data-testid="stFileUploader"] * {
+  color: #ffffff !important;
+}
+div[data-testid="stFileUploaderDropzone"],
+section[data-testid="stFileUploaderDropzone"],
+div[data-testid="stFileUploaderDropzone"] > div,
+section[data-testid="stFileUploaderDropzone"] > div {
   background: #0f0f0f !important;
   border: 1px dashed #ff2b2b !important;
   border-radius: 12px !important;
 }
-div[data-testid="stFileUploaderDropzone"] * {
-  color: #ffffff !important;
-}
-div[data-testid="stFileUploaderDropzone"] svg {
+div[data-testid="stFileUploaderDropzone"] svg,
+section[data-testid="stFileUploaderDropzone"] svg {
   fill: #ffffff !important;
 }
+
+/* Botão de "Browse files" dentro do uploader */
+div[data-testid="stFileUploader"] button,
+section[data-testid="stFileUploader"] button {
+  background: #0f0f0f !important;
+  color: #ffffff !important;
+  border: 1px solid #ff2b2b !important;
+  border-radius: 10px !important;
+}
+
+/* ===== CHECKBOX ===== */
+[data-testid="stCheckbox"] label { color: #ffffff !important; }
 
 /* ===== CODE BLOCK ===== */
 [data-testid="stCodeBlock"], pre, code {
@@ -151,17 +151,15 @@ st.set_page_config(
 ensure_dirs()
 apply_black_red_css()
 
-# Navegação lateral
 with st.sidebar:
     st.markdown("## 🎲 RPG Panel")
     page = st.radio(
         "Navegação",
-        ["📜 Introdução", "🧾 Ficha", "⚔️ Combate"],
+        ["📜 Introdução", "🧾 Ficha", "⚔️ Combate", "👹 Monstros (🔒)"],
         index=0,
         label_visibility="collapsed",
     )
 
-# Render por página
 if page == "📜 Introdução":
     render_intro()
 
@@ -177,4 +175,11 @@ elif page == "⚔️ Combate":
         render_combate()
     except Exception as e:
         st.error("Erro ao renderizar o Combate. Veja os logs do Streamlit Cloud.")
+        st.exception(e)
+
+elif page == "👹 Monstros (🔒)":
+    try:
+        render_monsters()
+    except Exception as e:
+        st.error("Erro ao renderizar Monstros. Veja os logs do Streamlit Cloud.")
         st.exception(e)
