@@ -17,7 +17,6 @@ def ensure_dirs() -> None:
     MONSTER_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ===== Characters =====
 def list_character_ids() -> List[str]:
     ensure_dirs()
     return sorted([p.stem for p in CHAR_DIR.glob("*.json")])
@@ -40,15 +39,43 @@ def save_character(ch: Character) -> None:
 def delete_character(char_id: str) -> bool:
     ensure_dirs()
     removed = False
-
     json_path = CHAR_DIR / f"{char_id}.json"
     if json_path.exists():
         json_path.unlink()
         removed = True
 
-    # apaga qualquer retrato com o id (png/jpg/jpeg etc.)
     for p in PORTRAIT_DIR.glob(f"{char_id}.*"):
         try:
             p.unlink()
             removed = True
         except Exception:
+            pass
+    return removed
+
+
+def list_monster_ids() -> List[str]:
+    ensure_dirs()
+    return sorted([p.stem for p in MONSTER_DIR.glob("*.json")])
+
+
+def load_monster(monster_id: str) -> Optional[Monster]:
+    ensure_dirs()
+    path = MONSTER_DIR / f"{monster_id}.json"
+    if not path.exists():
+        return None
+    return Monster.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def save_monster(m: Monster) -> None:
+    ensure_dirs()
+    path = MONSTER_DIR / f"{m.id}.json"
+    path.write_text(m.model_dump_json(indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def delete_monster(monster_id: str) -> bool:
+    ensure_dirs()
+    path = MONSTER_DIR / f"{monster_id}.json"
+    if path.exists():
+        path.unlink()
+        return True
+    return False
