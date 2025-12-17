@@ -1,17 +1,22 @@
 from __future__ import annotations
+
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class Weapon(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str = "Longsword"
-    attack_bonus: int = 0              # bônus TOTAL do ataque (já pronto)
-    damage: str = "1d8+0"              # suporta "2d6+1d4+3"
+    attack_bonus: int = 0
+    damage: str = "1d8+0"
     damage_type: str = "slashing"
     notes: str = ""
 
 
 class Character(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     id: str
     character_name: str
     player_name: str = ""
@@ -44,9 +49,22 @@ class Character(BaseModel):
 
     # Foto + equipamentos
     portrait_path: Optional[str] = None
+
+    # ✅ NOVO: salva a imagem no JSON (resolve Streamlit Cloud “não persiste”)
+    portrait_b64: Optional[str] = None
+
     equipment: List[str] = Field(default_factory=list)
 
-    # NOVO: características / regras da ficha (texto em Markdown)
+    # Notas (Markdown) – raça/antecedente/classe
     race_notes_md: str = ""
     background_notes_md: str = ""
     class_notes_md: str = ""
+
+
+class MonsterAction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    name: str = "Ataque"
+    to_hit: Optional[int] = None          # bônus total no ataque
+    damage: Optional[str] = None          # ex: "1d6+2"
+    damage_type: str = ""                 # ex: "slashing"
