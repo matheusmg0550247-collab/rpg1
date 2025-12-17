@@ -101,10 +101,7 @@ div[data-testid="stExpander"] div[role="region"] {
   padding: 12px !important;
 }
 
-/* ===== FILE UPLOADER (FIX do branco) ===== */
-div[data-testid="stFileUploader"], div[data-testid="stFileUploader"] * {
-  color: #ffffff !important;
-}
+/* ===== FILE UPLOADER (tirar branco) ===== */
 div[data-testid="stFileUploaderDropzone"],
 section[data-testid="stFileUploaderDropzone"],
 div[data-testid="stFileUploaderDropzone"] > div,
@@ -113,22 +110,10 @@ section[data-testid="stFileUploaderDropzone"] > div {
   border: 1px dashed #ff2b2b !important;
   border-radius: 12px !important;
 }
-div[data-testid="stFileUploaderDropzone"] svg,
-section[data-testid="stFileUploaderDropzone"] svg {
-  fill: #ffffff !important;
-}
-
-/* Botão de "Browse files" dentro do uploader */
-div[data-testid="stFileUploader"] button,
-section[data-testid="stFileUploader"] button {
-  background: #0f0f0f !important;
+div[data-testid="stFileUploaderDropzone"] *,
+section[data-testid="stFileUploaderDropzone"] * {
   color: #ffffff !important;
-  border: 1px solid #ff2b2b !important;
-  border-radius: 10px !important;
 }
-
-/* ===== CHECKBOX ===== */
-[data-testid="stCheckbox"] label { color: #ffffff !important; }
 
 /* ===== CODE BLOCK ===== */
 [data-testid="stCodeBlock"], pre, code {
@@ -162,24 +147,9 @@ with st.sidebar:
 
 if page == "📜 Introdução":
     render_intro()
-
 elif page == "🧾 Ficha":
-    try:
-        render_ficha()
-    except Exception as e:
-        st.error("Erro ao renderizar a Ficha. Veja os logs do Streamlit Cloud.")
-        st.exception(e)
-
+    render_ficha()
 elif page == "⚔️ Combate":
-    try:
-        render_combate()
-    except Exception as e:
-        st.error("Erro ao renderizar o Combate. Veja os logs do Streamlit Cloud.")
-        st.exception(e)
-
+    render_combate()
 elif page == "👹 Monstros (🔒)":
-    try:
-        render_monsters()
-    except Exception as e:
-        st.error("Erro ao renderizar Monstros. Veja os logs do Streamlit Cloud.")
-        st.exception(e)
+    render_monsters()
