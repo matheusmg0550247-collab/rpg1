@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional
+
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -8,8 +9,8 @@ class Weapon(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     name: str = "Longsword"
-    attack_bonus: int = 0
-    damage: str = "1d8+0"
+    attack_bonus: int = 0              # bônus TOTAL do ataque (já pronto)
+    damage: str = "1d8+0"              # suporta "2d6+1d4+3"
     damage_type: str = "slashing"
     notes: str = ""
 
@@ -50,21 +51,59 @@ class Character(BaseModel):
     # Foto + equipamentos
     portrait_path: Optional[str] = None
 
-    # ✅ NOVO: salva a imagem no JSON (resolve Streamlit Cloud “não persiste”)
+    # ✅ para persistir no Streamlit Cloud: salva a imagem dentro do JSON
     portrait_b64: Optional[str] = None
 
     equipment: List[str] = Field(default_factory=list)
 
-    # Notas (Markdown) – raça/antecedente/classe
+    # Markdown (raça/antecedente/classe)
     race_notes_md: str = ""
     background_notes_md: str = ""
     class_notes_md: str = ""
 
 
+# =========================
+# MONSTROS
+# =========================
+
 class MonsterAction(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     name: str = "Ataque"
-    to_hit: Optional[int] = None          # bônus total no ataque
-    damage: Optional[str] = None          # ex: "1d6+2"
-    damage_type: str = ""                 # ex: "slashing"
+    to_hit: Optional[int] = None         # bônus total no ataque
+    damage: Optional[str] = None         # ex: "1d6+2"
+    damage_type: str = ""                # ex: "slashing"
+    description: str = ""                # texto livre
+
+
+class Monster(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    name: str
+
+    size: str = "Medium"
+    creature_type: str = "humanoid"
+    alignment: str = "unaligned"
+
+    ac: int = 12
+    max_hp: int = 7
+    current_hp: int = 7
+    speed: str = "30 ft."
+
+    str_score: int = Field(10, ge=1, le=30)
+    dex_score: int = Field(10, ge=1, le=30)
+    con_score: int = Field(10, ge=1, le=30)
+    int_score: int = Field(10, ge=1, le=30)
+    wis_score: int = Field(10, ge=1, le=30)
+    cha_score: int = Field(10, ge=1, le=30)
+
+    skills: List[str] = Field(default_factory=list)
+    saves: List[str] = Field(default_factory=list)
+    senses: str = ""
+    languages: str = ""
+    cr: str = "1/4"
+
+    traits_md: str = ""
+    actions: List[MonsterAction] = Field(default_factory=list)
+    notes_md: str = ""
