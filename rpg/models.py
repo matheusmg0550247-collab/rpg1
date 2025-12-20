@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -26,6 +26,17 @@ class Character(BaseModel):
     background: str = ""
     level: int = 1
 
+    alignment: str = ""
+    xp: str = ""
+    inspiration: str = ""
+
+    personality_traits: str = ""
+    ideals: str = ""
+    bonds: str = ""
+    flaws: str = ""
+
+    prof_bonus: int = 0
+
     # Ability scores
     str_score: int = Field(10, ge=1, le=30)
     dex_score: int = Field(10, ge=1, le=30)
@@ -42,18 +53,19 @@ class Character(BaseModel):
     temp_hp: int = 0
     initiative_bonus: int = 0
 
-    # Proficiencies
+    # Proficiencies (strings)
     save_proficiencies: List[str] = Field(default_factory=list)
     skill_proficiencies: List[str] = Field(default_factory=list)
+
+    # Import “completo” do PDF: bônus prontos (como está na ficha)
+    skill_mods: Dict[str, int] = Field(default_factory=dict)   # ex: {"Perception": 6}
+    save_mods: Dict[str, int] = Field(default_factory=dict)    # ex: {"WIS": 6}
 
     weapons: List[Weapon] = Field(default_factory=list)
 
     # Foto + equipamentos
     portrait_path: Optional[str] = None
-
-    # ✅ para persistir no Streamlit Cloud: salva a imagem dentro do JSON
     portrait_b64: Optional[str] = None
-
     equipment: List[str] = Field(default_factory=list)
 
     # Markdown (raça/antecedente/classe)
@@ -61,19 +73,24 @@ class Character(BaseModel):
     background_notes_md: str = ""
     class_notes_md: str = ""
 
+    # Magias
+    spells: List[str] = Field(default_factory=list)  # lista completa dos campos Spells...
+    spell_slots_total: Dict[str, int] = Field(default_factory=dict)       # {"1": 4, "2": 3, ...}
+    spell_slots_remaining: Dict[str, int] = Field(default_factory=dict)   # {"1": 4, ...}
+    spellcasting_meta: Dict[str, str] = Field(default_factory=dict)       # DC, atk bonus, ability, class...
 
-# =========================
-# MONSTROS
-# =========================
+    # ✅ Dump 100% dos campos do PDF (pra nada se perder)
+    raw_pdf_fields: Dict[str, str] = Field(default_factory=dict)
+
 
 class MonsterAction(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     name: str = "Ataque"
-    to_hit: Optional[int] = None         # bônus total no ataque
-    damage: Optional[str] = None         # ex: "1d6+2"
-    damage_type: str = ""                # ex: "slashing"
-    description: str = ""                # texto livre
+    to_hit: Optional[int] = None
+    damage: Optional[str] = None
+    damage_type: str = ""
+    description: str = ""
 
 
 class Monster(BaseModel):
